@@ -15,6 +15,7 @@ SolutionName/
 ├── SolutionName.Abstractions   # Interfaces only — no implementations
 │   ├── DataModels/             # IStatus, ISubscriber, etc.
 │   ├── DomainModels/           # IDomainStatus, IDomainSubscriber, etc.
+│   ├── Enums/                  # Shared enums the interfaces reference (the one non-interface exception)
 │   └── Services/               # IStatusService, IInterestService, etc.
 ├── SolutionName.Database       # EF Core DbContext + migrations
 ├── SolutionName.EntityModels   # Database entity classes (anemic POCOs)
@@ -118,6 +119,14 @@ using (var scope = app.Services.CreateScope())
 ```
 
 This means a fresh deployment always reaches the correct schema without manual intervention. Acceptable for solo/small-team projects; revisit for high-availability deployments.
+
+### 8. One Type Per File
+
+Every `.cs` file declares exactly one top-level type — one class, interface, record or enum — and the file is named after it. This keeps the folder tree a faithful map of the type graph: you find `HabitView` in `HabitView.cs`, never buried three records down in a `Views.cs`.
+
+This is enforced at build time. `backend/Directory.Build.props` pulls in `StyleCop.Analyzers`, and `backend/.editorconfig` silences everything it ships except **SA1402** (*a file may only contain a single type*), which is promoted to an **error**. A multi-type file fails `dotnet build`. (Filename-match, SA1649, is intentionally left off — it false-flags the `AppDbContext` file name and EF-generated migrations.) Nested `private` helper types are allowed, since SA1402 only counts top-level types.
+
+Pure logic gets a home for the same reason: no `static` utility classes in `Services` — see `docs/specs/backend-srp.md`.
 
 ## Adding a New Feature (Checklist)
 

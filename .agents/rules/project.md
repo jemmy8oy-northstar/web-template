@@ -43,6 +43,10 @@ All discussion, questions, and remarks happen in the PR — not only in chat res
 
 - Follow the 7-layer architecture — see `docs/specs/backend-architecture.md` for the full structure and dependency rules.
 - Follow SRP and the orchestrator pattern — see `docs/specs/backend-srp.md`.
+- **One type per file** — exactly one class/interface/record/enum per `.cs` file, and the file name matches the type. Enforced at build time by StyleCop **SA1402** (an error; see `backend/.editorconfig` + `backend/Directory.Build.props`). A multi-type file fails the build.
+- **Abstractions holds interfaces only.** Concrete data/view DTOs live in `DataModels`, rich domain types in `DomainModels`. The only non-interface types allowed in `Abstractions` are the enums the interfaces reference (moving them out would force `Abstractions` to reference a concrete project). A service interface that returns a DTO returns its `I*` interface — so `Abstractions` keeps zero references to concrete projects.
+- **No `static` utility classes in `Services`.** Pure logic is either a DI service (an `I*` interface in `Abstractions/Services` + a concrete class in `Services`) or a method on a domain model — never a `static` helper class. (The route-mapping and DI-registration extension classes in `WebApi` are the only sanctioned static classes.)
+- **Prefer the `required` keyword** for non-nullable model properties instead of defaulting them (`= string.Empty`). It makes the contract explicit and stops a silently-valid empty value slipping through.
 - All new API endpoints must be registered within the `.WithOpenApi()` chain in `Program.cs`.
 - Request models (`*Request`) must never include server-managed fields (`Id`, `CreatedAt`, `IsVerified`).
 - Routes live in `Routes/` as extension methods — do not add routes directly in `Program.cs`.
