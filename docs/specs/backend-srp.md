@@ -100,3 +100,22 @@ public class MonthlyReportOrchestrator(
 ```
 
 All services are registered in `ServiceRegistration.cs`. The registration mirrors the folder structure — if a service is in `Services/Reporting/`, its registration is grouped with other Reporting services.
+
+---
+
+## No Static Utility Classes in Services
+
+Pure, stateless logic still belongs to an *object*, not a `static class`. A `static class HabitCalculator` or `static class PoolMath` in the `Services` project is an anti-pattern here, because it:
+
+- cannot be injected, mocked, or swapped — it hard-couples every caller to a concrete implementation via `TheClass.TheMethod(...)`;
+- cannot take dependencies later (logging, config, another service) without a disruptive rewrite of every call site;
+- sits outside the DI graph, so the call graph no longer reads as a set of collaborating services.
+
+Give the logic a home instead:
+
+1. **A DI service** — an `I*` interface in `Abstractions/Services` and a concrete class in `Services`, injected where it is used and registered in `ServiceRegistration.cs`. This is the default for anything a service calls.
+2. **A method on a domain model** — when the logic is isolated to a single `Domain*` type and needs no dependencies, put it on that model in `DomainModels` (e.g. `domainRatio.IsHealthy()`). The model owns its own behaviour.
+
+The only sanctioned `static` classes are the route-mapping and DI-registration extension classes in `WebApi` (`StatusRoutes`, `ServiceRegistration`) — they are the idiomatic ASP.NET Core extension-method pattern, not business logic.
+
+This rule is a natural extension of "no static access" above: a static utility class is static access wearing a different hat.
