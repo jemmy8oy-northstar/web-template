@@ -146,6 +146,58 @@ This is enforced at build time. `backend/Directory.Build.props` pulls in `StyleC
 
 Pure logic gets a home for the same reason: no `static` utility classes in `Services` — see `docs/specs/backend-srp.md`.
 
+### 9. Error Handling: Throw, Don't Catch
+
+Routes never `try/catch`. Services **throw** a typed `AppException` when they hit a
+recognised failure, and a single global handler turns it into an RFC 7807
+`ProblemDetails` response. This removes per-route error plumbing entirely — a route
+expresses only its success shape (`Ok<T>`), and a forgotten catch can no longer leak
+a raw 500.
+
+**The exception vocabulary** lives in `Abstractions/Exceptions/` (shared domain
+vocabulary). Every anticipated failure derives from the abstract `AppException`, which
+carries a stable machine-readable `ErrorCode`. It holds **no HTTP status** — the status
+is decided only at the WebApi boundary, so no HTTP concept leaks below it.
+
+| Exception | HTTP | `errorCode` | Use when |
+|---|---|---|---|
+| `NotFoundException` | 404 | `not_found` | The addressed resource does not exist |
+| `ValidationException` | 400 | `invalid_input` | Well-formed but a business rule rejected it |
+| `ConflictException` | 409 | `conflict` | Clashes with current state (duplicate, lost update) |
+| `UnauthorizedException` | 401 | `unauthenticated` | No / invalid credentials |
+| `ForbiddenException` | 403 | `forbidden` | Authenticated but not permitted |
+| `UpstreamServiceException` | 502 | `upstream_failure` | A downstream dependency failed |
+| *anything else* | 500 | `internal_error` | Unexpected fault — message **not** exposed, logged with stack |
+
+**The handler** is `WebApi/ExceptionHandling/AppExceptionHandler.cs` (implements
+`IExceptionHandler`), registered in `Program.cs`:
+
+```csharp
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<AppExceptionHandler>();
+// ...
+app.UseExceptionHandler();   // first in the pipeline
+```
+
+The pure type→status mapping lives in `ExceptionHandling/ExceptionResult.cs` so it is
+unit-testable without the HTTP pipeline. `AppException` messages are surfaced in the
+response `detail`; unexpected faults get a generic message (no internal detail leaked)
+but are logged at `Error` with the full exception.
+
+**Rules of thumb**
+- A service method that addresses a resource by id **throws `NotFoundException`** when
+  it is missing — it does not return `null`. Callers get the value or an exception.
+- Routes that can raise a known failure add `.ProducesProblem(StatusCodes.Status404NotFound)`
+  (or the relevant code) so the OpenAPI document — and the generated client — stay honest.
+- Reach for `ValidationException`/`ConflictException`/`UpstreamServiceException` in the
+  service the moment you detect the condition; never translate to HTTP by hand.
+- **Add a new exception type when none fits.** The six above are a starting vocabulary,
+  not a closed set. If a failure has no clean home among them, add a **new**
+  `AppException` subclass — its own file in `Abstractions/Exceptions/`, a distinct
+  `ErrorCode`, and a mapping arm in `ExceptionResult.Resolve` — rather than forcing it
+  into an ill-fitting existing type. A precise `errorCode` is worth more to the client
+  than a reused-but-wrong one.
+
 ## Adding a New Feature (Checklist)
 
 1. Add `*Entity` to `EntityModels/`, add `DbSet<>` to `DbContext`, create migration
@@ -153,8 +205,8 @@ Pure logic gets a home for the same reason: no `static` utility classes in `Serv
 3. Add `I*` interface to `Abstractions/DataModels/` and `Abstractions/DomainModels/`
 4. Add `*` data model and `*Request` to `DataModels/`
 5. Add `I*Service` interface to `Abstractions/Services/`
-6. Implement `*Service` in `Services/`, add `EntityModel ↔ DomainModel` mappings in `Services/Mapper.cs`
+6. Implement `*Service` in `Services/`, add `EntityModel ↔ DomainModel` mappings in `Services/Mapper.cs`. **Throw** a typed `AppException` (§9) on any recognised failure — e.g. `NotFoundException` for a missing resource — rather than returning `null` or catching
 7. Register service in `ServiceRegistration.cs`
 8. Add `DataModel ↔ DomainModel` mappings in `WebApi/Mapper.cs`
-9. Add route group in `Routes/*Routes.cs`, register in `Program.cs`
+9. Add route group in `Routes/*Routes.cs`, register in `Program.cs`. Add `.ProducesProblem(<code>)` for each failure the route can raise (§9) so the OpenAPI stays honest
 10. Run `npm run codegen` in `frontend/` to regenerate typed hooks
