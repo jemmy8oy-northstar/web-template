@@ -70,6 +70,7 @@ A `dotnet new` monorepo template for .NET 10 + React 19 projects. Every new proj
 - **No `static` utility classes in `Services`** — use a DI service or a domain-model method
 - **Service interfaces** — always return interfaces (`IRatio`), never concrete types
 - **Route handlers** — named static methods; typed results (`Ok<T>` / `Results<T1,T2>`); map via `IMapper`; no business logic
+- **Errors: throw, don't catch** — services throw a typed `AppException` from `Abstractions/Exceptions/` (`NotFoundException`, etc.); the global `AppExceptionHandler` renders RFC 7807 `ProblemDetails`. No route `try/catch`; add a **new** `AppException` subclass when none fits. See `docs/specs/backend-architecture.md` §9
 - **AutoMapper** — `WebApi/Mapper.cs` for Domain→Data (API boundary); `Services/Mapper.cs` for Entity→Domain (DB boundary)
 
 ## Running Locally
@@ -268,6 +269,7 @@ Run this checklist before raising any PR against backend changes.
 - [ ] Service methods return interface types
 - [ ] No HTTP or serialisation concepts in services
 - [ ] Bogus/faker logic lives in `Services/`, never in `WebApi/`
+- [ ] Recognised failures **throw** a typed `AppException` (§9) — no `null`-returns for missing resources, no route `try/catch`; a new subclass added if none fits
 
 ### 6. AutoMapper Profiles
 
