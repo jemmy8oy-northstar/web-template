@@ -42,3 +42,7 @@ app.MapGroup("/api")
     .WithOpenApi();
 
 app.Run();
+
+// Exposed so the test project can boot the real host in-process via
+// WebApplicationFactory<Program> (top-level statements make Program internal by default).
+public partial class Program;
