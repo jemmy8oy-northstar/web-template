@@ -6,5 +6,6 @@
   <Project Path="SolutionName.DomainModels/SolutionName.DomainModels.csproj" />
   <Project Path="SolutionName.EntityModels/SolutionName.EntityModels.csproj" />
   <Project Path="SolutionName.Services/SolutionName.Services.csproj" />
+  <Project Path="SolutionName.SourceGenerators/SolutionName.SourceGenerators.csproj" />
   <Project Path="SolutionName.Tests/SolutionName.Tests.csproj" />
 </Solution>

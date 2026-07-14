@@ -3,6 +3,8 @@
   <ItemGroup>
     <ProjectReference Include="../SolutionName.Abstractions/SolutionName.Abstractions.csproj" />
     <ProjectReference Include="../SolutionName.EntityModels/SolutionName.EntityModels.csproj" />
+    <ProjectReference Include="../SolutionName.SourceGenerators/SolutionName.SourceGenerators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <PropertyGroup>
