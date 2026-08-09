@@ -15,7 +15,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('home page renders hero and the mocked API status', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
 
   await expect(
     page.getByRole('heading', { name: 'Your App Name', level: 1 }),
@@ -27,11 +27,14 @@ test('home page renders hero and the mocked API status', async ({ page }) => {
   await page.screenshot({
     path: 'e2e/screenshots/home-light.png',
     fullPage: true,
+    // Fast-forward the theme transition so renders are deterministic instead
+    // of catching a half-faded frame right after the toggle click.
+    animations: 'disabled',
   });
 });
 
 test('home page renders in dark mode', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(
     page.getByRole('heading', { name: 'Your App Name', level: 1 }),
   ).toBeVisible();
@@ -41,5 +44,8 @@ test('home page renders in dark mode', async ({ page }) => {
   await page.screenshot({
     path: 'e2e/screenshots/home-dark.png',
     fullPage: true,
+    // Fast-forward the theme transition so renders are deterministic instead
+    // of catching a half-faded frame right after the toggle click.
+    animations: 'disabled',
   });
 });

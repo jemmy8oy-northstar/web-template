@@ -20,7 +20,14 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['list']] : 'list',
   use: {
-    baseURL: 'http://localhost:4173',
+    // Must carry Vite's `base` (see vite.config.ts). Vite's dev server
+    // redirects bare '/' to the base, so the home page happens to work without
+    // it — but any deeper route ('/editor') lands on Vite's "server is
+    // configured with a public base URL" hint page instead of the app.
+    // Specs therefore navigate with RELATIVE paths ('./', './thing'); a
+    // leading slash discards the base again.
+    // Rename this alongside `base` when you scaffold a new app.
+    baseURL: 'http://localhost:4173/your-app-name/',
     trace: 'on-first-retry',
   },
   projects: [
@@ -28,7 +35,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev -- --port 4173 --strictPort',
-    url: 'http://localhost:4173',
+    url: 'http://localhost:4173/your-app-name/',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

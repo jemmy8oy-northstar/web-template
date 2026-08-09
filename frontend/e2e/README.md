@@ -27,6 +27,26 @@ npm run test:e2e -- --ui          # interactive runner
 Screenshots are written to `frontend/e2e/screenshots/`; `npx playwright
 show-report` opens the HTML report after a run.
 
+## Gotchas worth knowing before you copy this
+
+**1. `baseURL` must carry Vite's `base`.** This scaffold sets
+`base: '/your-app-name/'` in `vite.config.ts`. The dev server redirects a bare
+`/` to that base, so the home page works either way — but any deeper route
+(`/editor`, `/settings`) served from a `baseURL` without the base lands on
+Vite's *"the server is configured with a public base URL"* hint page, and your
+assertions then run against the wrong document. Keep `baseURL` in
+`playwright.config.ts` in sync with `base`, and navigate with **relative**
+paths (`page.goto('./settings')`) — a leading slash discards the base again.
+
+**2. Screenshot after a theme toggle needs `animations: 'disabled'`.** The
+theme change is a 0.4s CSS transition, so a capture taken straight after the
+click freezes a half-faded frame and dark mode looks broken when it isn't.
+`animations: 'disabled'` fast-forwards finite transitions to completion.
+
+**3. If the app also has vitest**, exclude `e2e/**` from it — otherwise vitest
+collects the Playwright specs and `npm run test` fails with *"Playwright Test
+did not expect test.beforeEach() to be called here"*.
+
 ## CI (recommended)
 
 Add this workflow so every PR runs the tests and attaches the screenshots as a
