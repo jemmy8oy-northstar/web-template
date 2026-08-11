@@ -17,9 +17,10 @@ PR waiting on a check that could never report.
 
 ## Before you import: two things that will bite
 
-**1. Fill in `<GIT_OPS_APP_ID>`.** Both files carry a placeholder for the GitOps
-App's id — the org variable `GIT_OPS_APP_ID`, the same one
-`docker-build-push.yml` reads. It must be in `bypass_actors`, because the last
+**1. The GitOps App must stay in `bypass_actors`.** Both files carry its id —
+the org variable `GIT_OPS_APP_ID`, the same one `docker-build-push.yml` reads.
+An App id is not a credential (the private key is), so it is checked in here to
+keep the JSON paste-ready. It has to be in `bypass_actors`, because the last
 step of the release pipeline pushes the version bump straight to `main`:
 
 ```yaml
