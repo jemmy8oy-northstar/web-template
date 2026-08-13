@@ -141,6 +141,8 @@ npm run dev
 
 App runs at `http://localhost:5173`. The Vite dev server proxies `/api` and `/openapi` to the backend automatically.
 
+The UI is built on the **Iris** design system (tokens + primitives) — see [`docs/design-system.md`](docs/design-system.md) and the live showcase at `/design`.
+
 ### Regenerate the API client
 
 Run this after any backend endpoint change to keep the frontend types in sync:
