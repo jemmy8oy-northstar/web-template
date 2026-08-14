@@ -1,39 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@500;700;800&display=swap');
+@import './styles/tokens.css';
 
-:root {
-  /* Common - Brand Colors */
-  --accent-primary: #6366f1;
-  --accent-secondary: #a855f7;
-
-  /* Typography */
-  --font-main: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-display: 'Outfit', var(--font-main);
-
-  /* Transitions */
-  --theme-transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, background 0.4s ease;
-}
-
-/* Dark Theme (Default) */
-[data-theme='dark'] {
-  --bg-page: #0a0a0c;
-  --bg-card: rgba(255, 255, 255, 0.05);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-hover-bg: rgba(255, 255, 255, 0.08);
-  --gradient-opacity: 0.15;
-}
-
-/* Light Theme */
-[data-theme='light'] {
-  --bg-page: #f8fafc;
-  --bg-card: rgba(0, 0, 0, 0.03);
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-hover-bg: rgba(0, 0, 0, 0.05);
-  --gradient-opacity: 0.05;
-}
+/* ==========================================================================
+   IRIS — base styles
+   All values reference tokens from styles/tokens.css. If you find yourself
+   typing a hex colour or a px size here, it probably belongs in tokens.css.
+   ========================================================================== */
 
 * {
   box-sizing: border-box;
@@ -45,7 +17,7 @@ body {
   font-family: var(--font-main);
   background-color: var(--bg-page);
   color: var(--text-primary);
-  line-height: 1.6;
+  line-height: var(--leading-body);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   transition: var(--theme-transition);
@@ -55,7 +27,7 @@ main {
   padding-top: 40px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: var(--space-6);
 }
 
 h1,
@@ -63,8 +35,8 @@ h2,
 h3,
 h4 {
   font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-display);
   transition: var(--theme-transition);
 }
 
@@ -72,6 +44,12 @@ p,
 span,
 div {
   transition: var(--theme-transition);
+}
+
+/* Visible focus for keyboard users, everywhere */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 /* Premium Background */
@@ -93,53 +71,54 @@ body::before {
 /* Glassmorphism Classes */
 .glass {
   background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
   border: 1px solid var(--glass-border);
-  border-radius: 24px;
-  transition: var(--theme-transition), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius-xl);
+  transition: var(--theme-transition), transform var(--duration-base) var(--ease-standard);
 }
 
 .glass-hover:hover {
   transform: translateY(-8px);
   background: var(--glass-hover-bg);
-  border-color: rgba(99, 102, 241, 0.3);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent-border);
+  box-shadow: var(--shadow-2);
 }
 
 /* Layout Utilities */
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--space-5);
 }
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   section {
-    margin-bottom: 24px;
+    margin-bottom: var(--space-5);
   }
 
   .container {
     padding: 0 20px;
   }
 
+  /* !important is required below only where inline styles must be beaten */
   h1 {
     font-size: 2.5rem !important;
   }
 
   h2 {
-    font-size: 2rem !important;
+    font-size: var(--text-2xl) !important;
   }
 
   h3 {
-    font-size: 1.5rem !important;
+    font-size: var(--text-lg) !important;
   }
 
   /* Ensure detail page grids collapse */
   .detail-grid {
     grid-template-columns: 1fr !important;
-    gap: 32px !important;
+    gap: var(--space-6) !important;
   }
 
   /* Hero button stacking */
@@ -158,7 +137,7 @@ body::before {
   /* Navbar Mobile - Handle max-content overflow */
   nav {
     width: 90% !important;
-    padding: 12px 20px !important;
+    padding: var(--space-3) 20px !important;
     justify-content: space-between !important;
     flex-direction: column !important;
     align-items: flex-start !important;
@@ -169,7 +148,7 @@ body::before {
     /* Hide by default on mobile */
     flex-direction: column !important;
     width: 100% !important;
-    padding: 24px 0 !important;
+    padding: var(--space-5) 0 !important;
     gap: 20px !important;
   }
 
@@ -185,7 +164,7 @@ body::before {
   /* Form Stacking */
   .contact-form {
     flex-direction: column !important;
-    gap: 16px !important;
+    gap: var(--space-4) !important;
   }
 
   .contact-form input,
@@ -196,7 +175,7 @@ body::before {
   /* Northstar Milestones Stack */
   .milestones-container {
     flex-direction: column !important;
-    gap: 32px !important;
+    gap: var(--space-6) !important;
     align-items: center !important;
   }
 
@@ -206,7 +185,7 @@ body::before {
 
   /* Padding adjustments */
   .mobile-tight-padding {
-    padding: 32px 20px !important;
+    padding: var(--space-6) 20px !important;
   }
 }
 
@@ -221,4 +200,16 @@ a {
   text-decoration: none;
   color: inherit;
   transition: var(--theme-transition);
+}
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

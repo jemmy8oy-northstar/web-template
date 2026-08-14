@@ -65,9 +65,12 @@ A `dotnet new` monorepo template for .NET 10 + React 19 projects. Every new proj
 | Custom response | `*Response` | `DataModels/` | Only when the route assembles a shape the service does NOT directly return |
 
 ### Key Rules
-- **Abstractions** — interfaces only; zero concrete types; no project references to concrete projects
+- **Abstractions** — interfaces only (plus the enums those interfaces reference); no concrete classes/records/DTOs; no project references to concrete projects
+- **One type per file** — one class/interface/record/enum per `.cs`; enforced by StyleCop SA1402 as a build error
+- **No `static` utility classes in `Services`** — use a DI service or a domain-model method
 - **Service interfaces** — always return interfaces (`IRatio`), never concrete types
 - **Route handlers** — named static methods; typed results (`Ok<T>` / `Results<T1,T2>`); map via `IMapper`; no business logic
+- **Errors: throw, don't catch** — services throw a typed `AppException` from `Abstractions/Exceptions/` (`NotFoundException`, etc.); the global `AppExceptionHandler` renders RFC 7807 `ProblemDetails`. No route `try/catch`; add a **new** `AppException` subclass when none fits. See `docs/specs/backend-architecture.md` §9
 - **AutoMapper** — `WebApi/Mapper.cs` for Domain→Data (API boundary); `Services/Mapper.cs` for Entity→Domain (DB boundary)
 
 ## Running Locally
@@ -238,9 +241,15 @@ Run this checklist before raising any PR against backend changes.
 
 ### 2. Abstractions Project — Interfaces Only
 
-- [ ] No concrete types defined in `SolutionName.Abstractions`
+- [ ] No concrete types in `SolutionName.Abstractions` — **interfaces only** (the enums the interfaces reference are the one allowed exception; no classes/records/DTOs)
 - [ ] Service interface methods return **interfaces**, not concrete types (`IRatio`, not `Ratio`)
 - [ ] `SolutionName.Abstractions.csproj` has **zero** `<ProjectReference>` entries to concrete projects
+
+### 2a. Type Layout & Conventions
+
+- [ ] **One type per file** — one class/interface/record/enum per `.cs`, file name matches the type (StyleCop **SA1402** enforces this as a build error)
+- [ ] **No `static` utility classes in `Services`** — pure logic is a DI service or a domain-model method (only `WebApi` route/registration extension classes may be static). See `docs/specs/backend-srp.md`.
+- [ ] Non-nullable model strings use **`required`**, not `= string.Empty`
 
 ### 3. Inheritance & Extension Pattern
 
@@ -260,6 +269,7 @@ Run this checklist before raising any PR against backend changes.
 - [ ] Service methods return interface types
 - [ ] No HTTP or serialisation concepts in services
 - [ ] Bogus/faker logic lives in `Services/`, never in `WebApi/`
+- [ ] Recognised failures **throw** a typed `AppException` (§9) — no `null`-returns for missing resources, no route `try/catch`; a new subclass added if none fits
 
 ### 6. AutoMapper Profiles
 
@@ -273,7 +283,7 @@ Run this checklist before raising any PR against backend changes.
 cd backend && dotnet build
 ```
 
-- [ ] **0 errors** before raising the PR
+- [ ] **0 errors** before raising the PR (the build also runs the StyleCop analyzers — a multi-type file will fail here via SA1402)
 
 ## Code Formatting
 

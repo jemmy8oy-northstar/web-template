@@ -141,6 +141,8 @@ npm run dev
 
 App runs at `http://localhost:5173`. The Vite dev server proxies `/api` and `/openapi` to the backend automatically.
 
+The UI is built on the **Iris** design system (tokens + primitives) — see [`docs/design-system.md`](docs/design-system.md) and the live showcase at `/design`.
+
 ### Regenerate the API client
 
 Run this after any backend endpoint change to keep the frontend types in sync:
@@ -280,6 +282,21 @@ Two workflows are included in `.github/workflows/`:
 ### ARM64 Runner Note
 
 The deploy workflow uses `ubuntu-24.04-arm` (native ARM64, required for OKE free tier). This runner is **free for public repositories**. For private repositories it requires a paid GitHub plan — see the comment at the top of `docker-build-push.yml` for the `ubuntu-latest` + QEMU alternative.
+
+## Versioning & Releases
+
+Versions are computed automatically by [**GitVersion**](https://gitversion.net/) — you never hand-edit a version number.
+
+- **Configuration**: `GitVersion.yml` (Mainline mode — every merge to `main` bumps the patch by default; use Conventional-Commit prefixes / `+semver:` messages to bump minor or major).
+- **Where it runs**: the `docker-build-push.yml` workflow checks out the full history (`fetch-depth: 0`), runs `gitversion/execute`, and uses the resulting `semVer` to:
+  1. tag the backend and frontend Docker images (alongside `latest`), and
+  2. patch `helm/values.yaml` and commit it as a gitops release (`chore(gitops): release version X.Y.Z`).
+
+So the image tag, the deployed Helm version, and the Git history stay in lock-step with **zero manual versioning**.
+
+**Changelog.** Human-readable release notes live in [`CHANGELOG.md`](CHANGELOG.md) ([Keep a Changelog](https://keepachangelog.com/) format). Add your change to the `[Unreleased]` section in the same PR that makes it; it rolls into a dated/version heading when a release is cut.
+
+> **Note:** GitVersion is intentionally *not* wired into `dotnet build` (`GitVersion.MsBuild`), because `ci.yml` uses a shallow checkout and GitVersion needs full history — adding it would break the CI build gate. The app therefore does not self-report its GitVersion version; the `/status` endpoint returns a placeholder. If you want the running app to report its real version, add `fetch-depth: 0` to `ci.yml` and wire `GitVersion.MsBuild` into `backend/Directory.Build.props`.
 
 ## Project Structure
 

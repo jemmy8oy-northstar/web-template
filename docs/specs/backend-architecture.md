@@ -15,6 +15,7 @@ SolutionName/
 ├── SolutionName.Abstractions   # Interfaces only — no implementations
 │   ├── DataModels/             # IStatus, ISubscriber, etc.
 │   ├── DomainModels/           # IDomainStatus, IDomainSubscriber, etc.
+│   ├── Enums/                  # Shared enums the interfaces reference (the one non-interface exception)
 │   └── Services/               # IStatusService, IInterestService, etc.
 ├── SolutionName.Database       # EF Core DbContext + migrations
 ├── SolutionName.EntityModels   # Database entity classes (anemic POCOs)
@@ -79,7 +80,12 @@ AutoMapper is configured in `ServiceRegistration.cs` to scan all assemblies for 
 
 ### 5. Route Grouping (Minimal APIs)
 
-Routes are organized into `Routes/` and registered via extension methods:
+Routes are organized into `Routes/` and registered via extension methods. Handlers
+are **named static methods** (not inline lambdas) with **concrete `TypedResults`
+return types** — never a bare `Results.Ok(...)`/`IResult`. Only a concrete return type
+(`Ok<T>`, `Results<Ok<T>, NotFound>`, `Created<T>`, `NoContent`) lets OpenAPI describe
+the response body, which is what the frontend codegen turns into typed hooks. Service
+view interfaces are mapped to their concrete response records via `IMapper`.
 
 ```csharp
 // Program.cs
@@ -88,14 +94,22 @@ app.MapGroup("/api")
     .MapInterestRoutes()
     .WithOpenApi();
 
-// Routes/StatusRoutes.cs
-public static class StatusRoutes
+// Routes/InterestRoutes.cs
+public static class InterestRoutes
 {
-    public static RouteGroupBuilder MapStatusRoutes(this RouteGroupBuilder group)
+    public static RouteGroupBuilder MapInterestRoutes(this RouteGroupBuilder group)
     {
-        group.MapGet("/status", async (IStatusService svc) => await svc.GetStatusAsync());
+        group.MapGet("/interest/{id:int}", GetInterest).WithName("GetInterest");
         return group;
     }
+
+    // Named delegate + concrete return type → OpenAPI knows the 200 body is `Interest`
+    // and the 404 has no body. Inline `async (id, svc) => Results.Ok(...)` would erase both.
+    private static async Task<Results<Ok<Interest>, NotFound>> GetInterest(
+        int id, IInterestService svc, IMapper mapper) =>
+        await svc.GetAsync(id) is { } interest      // service returns the interface I*
+            ? TypedResults.Ok(mapper.Map<Interest>(interest))  // mapped to the concrete record
+            : TypedResults.NotFound();
 }
 ```
 
@@ -104,6 +118,11 @@ This keeps `Program.cs` lean regardless of how many endpoints are added.
 ### 6. OpenAPI as the Source of Truth
 
 The backend generates an OpenAPI schema at `/openapi/v1.json`. The frontend RTK Query client is generated directly from this schema — no manual HTTP calls, no drifting types. See `docs/specs/openapi-codegen.md`.
+
+For the schema to carry response types, every handler must return a **concrete
+`TypedResults` type** (see §5). A handler that returns `IResult` (the type of any
+`Results.Ok(...)` lambda) contributes an endpoint with *no* response schema, so the
+generated hook types come out as `unknown`. Typed handlers are what make the schema — and therefore the frontend types — trustworthy.
 
 ### 7. Auto-Run Migrations
 
@@ -119,6 +138,66 @@ using (var scope = app.Services.CreateScope())
 
 This means a fresh deployment always reaches the correct schema without manual intervention. Acceptable for solo/small-team projects; revisit for high-availability deployments.
 
+### 8. One Type Per File
+
+Every `.cs` file declares exactly one top-level type — one class, interface, record or enum — and the file is named after it. This keeps the folder tree a faithful map of the type graph: you find `HabitView` in `HabitView.cs`, never buried three records down in a `Views.cs`.
+
+This is enforced at build time. `backend/Directory.Build.props` pulls in `StyleCop.Analyzers`, and `backend/.editorconfig` silences everything it ships except **SA1402** (*a file may only contain a single type*), which is promoted to an **error**. A multi-type file fails `dotnet build`. (Filename-match, SA1649, is intentionally left off — it false-flags the `AppDbContext` file name and EF-generated migrations.) Nested `private` helper types are allowed, since SA1402 only counts top-level types.
+
+Pure logic gets a home for the same reason: no `static` utility classes in `Services` — see `docs/specs/backend-srp.md`.
+
+### 9. Error Handling: Throw, Don't Catch
+
+Routes never `try/catch`. Services **throw** a typed `AppException` when they hit a
+recognised failure, and a single global handler turns it into an RFC 7807
+`ProblemDetails` response. This removes per-route error plumbing entirely — a route
+expresses only its success shape (`Ok<T>`), and a forgotten catch can no longer leak
+a raw 500.
+
+**The exception vocabulary** lives in `Abstractions/Exceptions/` (shared domain
+vocabulary). Every anticipated failure derives from the abstract `AppException`, which
+carries a stable machine-readable `ErrorCode`. It holds **no HTTP status** — the status
+is decided only at the WebApi boundary, so no HTTP concept leaks below it.
+
+| Exception | HTTP | `errorCode` | Use when |
+|---|---|---|---|
+| `NotFoundException` | 404 | `not_found` | The addressed resource does not exist |
+| `ValidationException` | 400 | `invalid_input` | Well-formed but a business rule rejected it |
+| `ConflictException` | 409 | `conflict` | Clashes with current state (duplicate, lost update) |
+| `UnauthorizedException` | 401 | `unauthenticated` | No / invalid credentials |
+| `ForbiddenException` | 403 | `forbidden` | Authenticated but not permitted |
+| `UpstreamServiceException` | 502 | `upstream_failure` | A downstream dependency failed |
+| *anything else* | 500 | `internal_error` | Unexpected fault — message **not** exposed, logged with stack |
+
+**The handler** is `WebApi/ExceptionHandling/AppExceptionHandler.cs` (implements
+`IExceptionHandler`), registered in `Program.cs`:
+
+```csharp
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<AppExceptionHandler>();
+// ...
+app.UseExceptionHandler();   // first in the pipeline
+```
+
+The pure type→status mapping lives in `ExceptionHandling/ExceptionResult.cs` so it is
+unit-testable without the HTTP pipeline. `AppException` messages are surfaced in the
+response `detail`; unexpected faults get a generic message (no internal detail leaked)
+but are logged at `Error` with the full exception.
+
+**Rules of thumb**
+- A service method that addresses a resource by id **throws `NotFoundException`** when
+  it is missing — it does not return `null`. Callers get the value or an exception.
+- Routes that can raise a known failure add `.ProducesProblem(StatusCodes.Status404NotFound)`
+  (or the relevant code) so the OpenAPI document — and the generated client — stay honest.
+- Reach for `ValidationException`/`ConflictException`/`UpstreamServiceException` in the
+  service the moment you detect the condition; never translate to HTTP by hand.
+- **Add a new exception type when none fits.** The six above are a starting vocabulary,
+  not a closed set. If a failure has no clean home among them, add a **new**
+  `AppException` subclass — its own file in `Abstractions/Exceptions/`, a distinct
+  `ErrorCode`, and a mapping arm in `ExceptionResult.Resolve` — rather than forcing it
+  into an ill-fitting existing type. A precise `errorCode` is worth more to the client
+  than a reused-but-wrong one.
+
 ## Adding a New Feature (Checklist)
 
 1. Add `*Entity` to `EntityModels/`, add `DbSet<>` to `DbContext`, create migration
@@ -126,8 +205,8 @@ This means a fresh deployment always reaches the correct schema without manual i
 3. Add `I*` interface to `Abstractions/DataModels/` and `Abstractions/DomainModels/`
 4. Add `*` data model and `*Request` to `DataModels/`
 5. Add `I*Service` interface to `Abstractions/Services/`
-6. Implement `*Service` in `Services/`, add `EntityModel ↔ DomainModel` mappings in `Services/Mapper.cs`
+6. Implement `*Service` in `Services/`, add `EntityModel ↔ DomainModel` mappings in `Services/Mapper.cs`. **Throw** a typed `AppException` (§9) on any recognised failure — e.g. `NotFoundException` for a missing resource — rather than returning `null` or catching
 7. Register service in `ServiceRegistration.cs`
 8. Add `DataModel ↔ DomainModel` mappings in `WebApi/Mapper.cs`
-9. Add route group in `Routes/*Routes.cs`, register in `Program.cs`
+9. Add route group in `Routes/*Routes.cs`, register in `Program.cs`. Add `.ProducesProblem(<code>)` for each failure the route can raise (§9) so the OpenAPI stays honest
 10. Run `npm run codegen` in `frontend/` to regenerate typed hooks
