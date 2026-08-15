@@ -1,3 +1,4 @@
+using System.CodeDom.Compiler;
 using System.Reflection;
 using SolutionName.Tests.GenerateInterfaceFixtures;
 
@@ -35,6 +36,34 @@ public class GenerateInterfaceTests
         // deliberate edit to this test, not a silent drift.
         Assert.Equal(typeof(Basic).Namespace, typeof(IBasic).Namespace);
         Assert.Equal(typeof(Basic).Assembly, typeof(IBasic).Assembly);
+    }
+
+    // --------------------------------------------- nothing is hand-written
+    [Fact]
+    public void Every_interface_in_the_fixtures_is_generated_not_hand_written()
+    {
+        // James's review on #89: "there are a lot of handwritten interfaces".
+        // The closing interfaces (IPerson, IDomainPerson, INode) and the
+        // constraint (IAddr) were hand-written and did not need to be — the
+        // generator already substitutes a constructed base's type arguments.
+        // This asserts the fixtures never regain a hand-written interface: the
+        // generator stamps [GeneratedCode], so "is this generated?" is a
+        // runtime question rather than a question about the file list.
+        var interfaces = typeof(Basic).Assembly
+            .GetTypes()
+            .Where(t => t.IsInterface && t.Namespace == typeof(Basic).Namespace)
+            .ToArray();
+
+        // Guard against the assertion passing vacuously if the namespace moves.
+        Assert.NotEmpty(interfaces);
+
+        var handWritten = interfaces
+            .Where(t => t.GetCustomAttribute<GeneratedCodeAttribute>() is null)
+            .Select(t => t.Name)
+            .OrderBy(n => n)
+            .ToArray();
+
+        Assert.Empty(handWritten);
     }
 
     // ----------------------------------------------------------- what's in
@@ -160,7 +189,10 @@ public class GenerateInterfaceTests
         Assert.True(definition.IsInterface);
 
         var typeParameter = definition.GetGenericArguments()[0];
-        Assert.Contains(typeof(IAddressLike), typeParameter.GetGenericParameterConstraints());
+
+        // The constraint is itself a GENERATED interface (IAddr, mirrored from
+        // Addr) — there is no hand-written contract holding the layering up.
+        Assert.Contains(typeof(IAddr), typeParameter.GetGenericParameterConstraints());
     }
 
     [Fact]
@@ -176,7 +208,7 @@ public class GenerateInterfaceTests
         // The whole point of the generics: this method is written once.
         static string NameOf<TPerson, TAddress>(TPerson person)
             where TPerson : IPersonBase<TAddress>
-            where TAddress : IAddressLike
+            where TAddress : IAddr
             => person.Name;
 
         Assert.Equal("contract", NameOf<Person, Addr>(new Person { Name = "contract" }));

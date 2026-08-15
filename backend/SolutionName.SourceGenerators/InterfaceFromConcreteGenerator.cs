@@ -25,6 +25,9 @@ public sealed class InterfaceFromConcreteGenerator : IIncrementalGenerator
 {
     private const string AttributeName = "GenerateInterfaceAttribute";
 
+    private const string GeneratorName = "SolutionName.SourceGenerators";
+    private const string GeneratorVersion = "1.0.0";
+
     // Fully-qualified, with nullable annotations, so the generated file never
     // depends on which usings happen to be in scope.
     private static readonly SymbolDisplayFormat TypeFormat =
@@ -102,6 +105,15 @@ public sealed class InterfaceFromConcreteGenerator : IIncrementalGenerator
             sb.Append("namespace ").Append(ns).AppendLine(";");
             sb.AppendLine();
         }
+
+        // Marked as generated so "is this hand-written?" is answerable at
+        // runtime rather than by reading the file list — GenerateInterfaceTests
+        // asserts every mirror in the fixtures carries it.
+        sb.Append("[global::System.CodeDom.Compiler.GeneratedCode(\"")
+          .Append(GeneratorName)
+          .Append("\", \"")
+          .Append(GeneratorVersion)
+          .AppendLine("\")]");
 
         sb.Append(accessibility).Append(" interface ").Append(interfaceName);
         AppendTypeParameters(sb, classSymbol.TypeParameters);

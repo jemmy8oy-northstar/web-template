@@ -13,7 +13,7 @@ namespace SolutionName.Tests.GenerateInterfaceFixtures;
 /// </remarks>
 [GenerateInterface]
 public abstract class PersonBase<TAddress> : IPersonBase<TAddress>
-    where TAddress : IAddressLike
+    where TAddress : IAddr
 {
     public string Name { get; set; } = "";
 

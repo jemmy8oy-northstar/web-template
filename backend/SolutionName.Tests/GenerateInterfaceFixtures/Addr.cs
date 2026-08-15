@@ -2,9 +2,13 @@ using SolutionName.Abstractions.Generation;
 
 namespace SolutionName.Tests.GenerateInterfaceFixtures;
 
-/// <summary>A leaf: nothing about it varies between layers, so no generic base.</summary>
+/// <summary>
+/// A leaf: nothing about it varies between layers, so no generic base. Its
+/// generated <c>IAddr</c> is what <see cref="PersonBase{TAddress}"/> constrains
+/// on — the constraint the layering hangs on is itself generated.
+/// </summary>
 [GenerateInterface]
-public class Addr : IAddressLike, IAddr
+public class Addr : IAddr
 {
     public string Line1 { get; set; } = "";
 }
