@@ -11,7 +11,12 @@ COPY SolutionName.DomainModels/*.csproj ./SolutionName.DomainModels/
 COPY SolutionName.Services/*.csproj ./SolutionName.Services/
 COPY SolutionName.EntityModels/*.csproj ./SolutionName.EntityModels/ 
 COPY SolutionName.Database/*.csproj ./SolutionName.Database/
+COPY SolutionName.Tests/*.csproj ./SolutionName.Tests/
 # Restore dependencies
+# NOTE: `dotnet restore` with no argument restores SolutionName.slnx, so EVERY project
+# listed there must have its .csproj copied above — including test projects, which are
+# not published. Adding a project to the solution without a COPY line here breaks the
+# image build only, and only on a push to main, long after CI has gone green.
 RUN dotnet restore
 
 # Copy all source files
