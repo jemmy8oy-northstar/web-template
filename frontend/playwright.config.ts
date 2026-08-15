@@ -10,8 +10,12 @@ import { defineConfig, devices } from '@playwright/test';
  * Run:  npm run test:e2e            (headless, starts the dev server for you)
  *       npm run test:e2e -- --ui    (interactive)
  *
- * Note: the CI job (see e2e/README.md) uploads e2e/screenshots/ as a build
- * artifact so screenshots are viewable per-PR.
+ * e2e/screenshots/ is GITIGNORED and asserts nothing — page.screenshot() is a
+ * plain write, not a comparison, so these files can never fail a build.
+ *
+ * ⚠️ This comment used to claim the CI job uploads e2e/screenshots/ as a
+ * per-PR artifact. It does not — ci.yml uploads playwright-report/ and only
+ * `if: failure()`. e2e/README.md has the step to add if you want them.
  */
 export default defineConfig({
   testDir: './e2e',
