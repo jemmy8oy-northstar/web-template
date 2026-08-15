@@ -57,7 +57,7 @@ const ISSUES = [
     title: '[1a] Set up pipeline secrets and variables',
     body: `## Summary
 
-Configure CI/CD pipeline secrets and repository variables so automated workflows can build, deploy, and run Claude.
+Configure CI/CD pipeline secrets and repository variables so automated workflows can build and deploy the app.
 
 ## Acceptance Criteria
 
@@ -67,9 +67,10 @@ Configure CI/CD pipeline secrets and repository variables so automated workflows
 - [ ] Repository **Secrets** added (Settings → Secrets and variables → Secrets):
   - \`OCIR_USERNAME\` — e.g. \`tenancy/oracleidentitycloudservice/your@email.com\`
   - \`OCIR_AUTH_TOKEN\` — OCI auth token
-  - \`CLAUDE_CODE_OAUTH_TOKEN\` — OAuth token for the Claude GitHub Action
 
 ## Notes
+
+OCIR secrets and variables should already be available at the organisation level — check there before adding at repo level.
 
 This issue is actioned by the developer, not Claude. Close it once secrets are configured.
 `,
@@ -78,13 +79,80 @@ This issue is actioned by the developer, not Claude. Close it once secrets are c
     title: '[1b] Set up branch policies',
     body: `## Summary
 
-Configure branch protection rules so that \`main\` is developer-only and all work flows through \`dev\` via PRs.
+Configure branch protection rules so that \`main\` and \`dev\` require PRs and all work flows through feature branches.
 
 ## Acceptance Criteria
 
-- [ ] \`main\` branch created and protected (require PR, no direct push)
+- [ ] \`main\` branch created
 - [ ] \`dev\` branch created — default branch for Claude PRs
+- [ ] Branch ruleset applied (see below)
 - [ ] **"Automatically delete head branches"** enabled (Settings → General)
+
+## Branch Ruleset
+
+Apply this ruleset via Settings → Rules → Rulesets → New branch ruleset. Paste the JSON below or configure manually.
+
+\`\`\`json
+{
+  "name": "Protected Branches",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "exclude": [],
+      "include": [
+        "refs/heads/main",
+        "refs/heads/dev"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 0,
+        "dismiss_stale_reviews_on_push": false,
+        "required_reviewers": [],
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false,
+        "allowed_merge_methods": [
+          "rebase",
+          "merge"
+        ]
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": false,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          {
+            "context": "verify-branch",
+            "integration_id": 15368
+          }
+        ]
+      }
+    }
+  ],
+  "bypass_actors": [
+    {
+      "actor_id": 5,
+      "actor_type": "RepositoryRole",
+      "bypass_mode": "always"
+    }
+  ]
+}
+\`\`\`
+
+> **Note:** The \`bypass_actors\` entry for \`actor_id: 5\` gives repo admins bypass access so you can push directly when needed. If your GitOps pipeline app needs bypass access too, add its integration ID as a second entry.
 
 ## Notes
 
