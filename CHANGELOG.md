@@ -22,6 +22,15 @@ every PR; the entries roll into the next release heading when a version is cut.
 - This `CHANGELOG.md` and a README "Versioning & Releases" section documenting the
   existing GitVersion pipeline ([#74](https://github.com/jemmy8oy-northstar/web-template/pull/74)).
 
+### Changed
+- Build-time OpenAPI generation: the backend now emits its schema via
+  `Microsoft.Extensions.ApiDescription.Server` on a Debug build (in-process, no running
+  server or database) into a committed `openapi.json`, and frontend codegen reads that
+  file instead of `http://localhost:5257`. `npm run codegen` now works offline and in CI.
+  The startup DB migration is skipped when the build-time generator loads the app. Fixes
+  the previously-broken `RenameOpenApiFile` target
+  ([#76](https://github.com/jemmy8oy-northstar/web-template/issues/76)).
+
 ## 2026-07-11
 
 ### Changed

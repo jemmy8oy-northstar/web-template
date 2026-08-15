@@ -209,4 +209,4 @@ but are logged at `Error` with the full exception.
 7. Register service in `ServiceRegistration.cs`
 8. Add `DataModel ↔ DomainModel` mappings in `WebApi/Mapper.cs`
 9. Add route group in `Routes/*Routes.cs`, register in `Program.cs`. Add `.ProducesProblem(<code>)` for each failure the route can raise (§9) so the OpenAPI stays honest
-10. Run `npm run codegen` in `frontend/` to regenerate typed hooks
+10. Rebuild the backend in Debug to refresh `openapi.json`, then run `npm run codegen` in `frontend/` to regenerate typed hooks
