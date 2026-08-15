@@ -12,6 +12,7 @@ COPY SolutionName.Services/*.csproj ./SolutionName.Services/
 COPY SolutionName.EntityModels/*.csproj ./SolutionName.EntityModels/ 
 COPY SolutionName.Database/*.csproj ./SolutionName.Database/
 COPY SolutionName.Tests/*.csproj ./SolutionName.Tests/
+COPY SolutionName.SourceGenerators/*.csproj ./SolutionName.SourceGenerators/
 # Restore dependencies
 # NOTE: `dotnet restore` with no argument restores SolutionName.slnx, so EVERY project
 # listed there must have its .csproj copied above — including test projects, which are

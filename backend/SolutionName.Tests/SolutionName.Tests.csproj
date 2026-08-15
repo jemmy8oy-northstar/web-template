@@ -24,6 +24,10 @@
     <ProjectReference Include="..\SolutionName.Services\SolutionName.Services.csproj" />
     <ProjectReference Include="..\SolutionName.Abstractions\SolutionName.Abstractions.csproj" />
     <ProjectReference Include="..\SolutionName.DomainModels\SolutionName.DomainModels.csproj" />
+    <!-- The generator runs over this project's own fixtures, so the tests
+         exercise the real Roslyn pipeline rather than a string comparison. -->
+    <ProjectReference Include="..\SolutionName.SourceGenerators\SolutionName.SourceGenerators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

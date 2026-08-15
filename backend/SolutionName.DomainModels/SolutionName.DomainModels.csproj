@@ -3,6 +3,10 @@
   <ItemGroup>
     <ProjectReference Include="../SolutionName.DataModels/SolutionName.DataModels.csproj" />
     <ProjectReference Include="../SolutionName.Abstractions/SolutionName.Abstractions.csproj" />
+    <!-- Analyzer, not a runtime dependency: supplies [GenerateInterface].
+         Inert until a class here is marked with it. -->
+    <ProjectReference Include="../SolutionName.SourceGenerators/SolutionName.SourceGenerators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <PropertyGroup>
