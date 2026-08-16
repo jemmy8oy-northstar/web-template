@@ -12,7 +12,7 @@ into new features and add routes to `mocks.ts` as the app grows.
 | `../playwright.config.ts` | Config — boots the Vite dev server, targets Chromium. |
 | `mocks.ts` | One place that fulfils every API call the app makes. Add a route here when the frontend starts calling a new endpoint. |
 | `home.spec.ts` | Smoke asserts + screenshots for the home page (light + dark). |
-| `screenshots/` | Generated PNGs land here. |
+| `screenshots/` | Generated PNGs land here. **Gitignored** — see below. |
 
 ## Run locally
 
@@ -47,37 +47,40 @@ click freezes a half-faded frame and dark mode looks broken when it isn't.
 collects the Playwright specs and `npm run test` fails with *"Playwright Test
 did not expect test.beforeEach() to be called here"*.
 
-## CI (recommended)
+## The screenshots are not committed, and they assert nothing
 
-Add this workflow so every PR runs the tests and attaches the screenshots as a
-downloadable artifact. GitHub runners ship all the browser deps, so
-`--with-deps` just works there.
+`page.screenshot()` is a plain **write**, not a comparison. There is no
+`toHaveScreenshot` here, so **no screenshot can ever fail a build** — they exist
+to be looked at. `frontend/e2e/screenshots/` is gitignored, and generated repos
+inherit that.
+
+James's call on snip-it#15: *"get rid of the committed pngs I think it wastes
+git storage."* Committing them cost 4.7 MB across three repos and bought
+nothing, because each e2e run rewrites them and nothing ever reads them.
+
+## Reviewing them on a PR
+
+`ci.yml`'s `e2e` job uploads `playwright-report/` and only `if: failure()`, so a
+green run publishes nothing to look at. To get the screenshots per-PR, add this
+step to that job:
 
 ```yaml
-# .github/workflows/frontend-e2e.yml
-name: frontend-e2e
-on:
-  pull_request:
-    paths: ['frontend/**']
-jobs:
-  e2e:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
-      - uses: actions/upload-artifact@v4
+      - name: Upload e2e screenshots
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: e2e-screenshots
           path: frontend/e2e/screenshots/
+          retention-days: 7
 ```
 
-Download the `e2e-screenshots` artifact from the PR's checks to review.
+<!-- Corrections, 2026-08-15: this section previously described a
+     frontend-e2e.yml workflow that was never added — ci.yml has the e2e job
+     instead. That stale text was copied into every generated repo. -->
+
+## If you want an actual UI-drift check
+
+Nothing in this org has one. `page.screenshot()` cannot fail; only
+`expect(page).toHaveScreenshot()` compares against a committed baseline. That
+*would* be a reason to commit PNGs — a small number of deliberate baselines,
+which is a different thing from dumping every render into git.
