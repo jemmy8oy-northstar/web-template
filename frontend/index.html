@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <!-- Must name a file that actually exists in frontend/public/. Vite rewrites this href
+         against `base` at build time, so a generated app serves it from its own path prefix;
+         it does not fall back to anything when the file is missing, it just 404s. -->
+    <link rel="icon" type="image/svg+xml" href="/balenthiran.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Web Template App</title>
   </head>
