@@ -27,4 +27,17 @@ public class StatusApiTests
         Assert.NotNull(payload);
         Assert.False(string.IsNullOrWhiteSpace(payload!.Version));
     }
+
+    [Fact]
+    public async Task Get_status_is_served_under_the_configured_PathBase()
+    {
+        // The ingress forwards /your-app-name/api/... unstripped; PathBase is what makes that route.
+        using var factory = new StatusApiFactory().WithWebHostBuilder(b =>
+            b.UseSetting("PathBase", "/your-app-name"));
+        var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/your-app-name/api/status");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
 }

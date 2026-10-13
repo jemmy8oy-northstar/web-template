@@ -396,5 +396,6 @@ After creating a new project from this template, update `helm/values.yaml`:
 1. Set `fullnameOverride` to your app name (lowercase, hyphens — e.g. `my-app`)
 2. Set `apps[*].ingress.path` to `/{app-name}` (frontend) and `/{app-name}/api` (backend)
 3. The `balenthiran.co.uk` host, `balenthiran-tls` cert, and `registryPrefix` are shared — do not change them
+   and the backend's `PathBase` env value to `/{app-name}` (the ingress does not strip the prefix)
 4. Add app-specific env vars / secrets as needed — none are pre-scaffolded
 5. Do NOT add `deploy.sh` — deployment is via `docker-build-push.yml` pipeline
