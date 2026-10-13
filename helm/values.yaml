@@ -33,6 +33,10 @@ apps:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    env:
+      # The ingress routes /your-app-name/api here without stripping the prefix.
+      - name: PathBase
+        value: "/your-app-name"     # developer replaces 'your-app-name' at scaffold time
 
   - name: frontend
     image:

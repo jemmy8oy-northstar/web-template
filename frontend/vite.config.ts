@@ -13,6 +13,13 @@ export default defineConfig({
   ],
   server: {
     proxy: {
+      // The client calls `<base>api/...` (see emptyApi.ts); the local backend serves at the root.
+      '/your-app-name/api': {
+        target: 'http://localhost:5257',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/your-app-name/, ''),
+      },
       '/api': {
         target: 'http://localhost:5257',
         changeOrigin: true,
